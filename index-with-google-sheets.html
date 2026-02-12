@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THR1VE Daily Metrics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 900px;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 10px;
+        }
+
+        .view-toggle button {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .view-toggle button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .view-toggle button.active {
+            background: white;
+            color: #667eea;
+        }
+
+        .settings-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .settings-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .chat-view, .graph-view {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .chat-view.active, .graph-view.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .messages {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.bot {
+            align-self: flex-start;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 20px;
+        }
+
+        .message.bot .avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .message.user .avatar {
+            background: #e0e0e0;
+        }
+
+        .message-content {
+            background: #f5f5f5;
+            padding: 12px 18px;
+            border-radius: 18px;
+            max-width: 70%;
+            line-height: 1.5;
+        }
+
+        .message.bot .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.user .message-content {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .input-area {
+            padding: 20px 30px;
+            background: #f9f9f9;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .number-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        select,
+        textarea {
+            flex: 1;
+            padding: 12px 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: #667eea;
+        }
+
+        textarea {
+            border-radius: 15px;
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .scale-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .scale-btn {
+            background: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+            padding: 10px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            min-width: 50px;
+        }
+
+        .scale-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .scale-btn.selected {
+            background: #667eea;
+            color: white;
+        }
+
+        .graph-view {
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .graph-container {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .graph-container h3 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .graph-canvas {
+            max-height: 300px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-card .label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .completion-message {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            border-radius: 15px;
+            margin: 20px;
+        }
+
+        .completion-message h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .completion-message p {
+            font-size: 16px;
+            opacity: 0.95;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        .quick-actions button {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .quick-actions button:hover {
+            transform: scale(1.05);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px;
+            text-align: center;
+        }
+
+        .config-required {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            color: #856404;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px;
+            text-align: center;
+        }
+
+        .config-required h2 {
+            margin-bottom: 15px;
+        }
+
+        .config-required code {
+            background: #fff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #d32f2f;
+        }
+
+        .config-input {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .config-input input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .config-input button {
+            background: #ffc107;
+            color: #856404;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 0;
+            }
+
+            .container {
+                height: 100vh;
+                max-height: 100vh;
+                border-radius: 0;
+                max-width: 100%;
+            }
+
+            .header {
+                padding: 15px 20px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .view-toggle {
+                gap: 6px;
+            }
+
+            .view-toggle button {
+                padding: 6px 12px;
+                font-size: 13px;
+            }
+
+            .settings-btn {
+                padding: 6px 12px;
+                font-size: 20px;
+            }
+
+            .messages {
+                padding: 15px;
+            }
+
+            .message-content {
+                max-width: 85%;
+                font-size: 15px;
+            }
+
+            .avatar {
+                width: 35px;
+                height: 35px;
+                font-size: 18px;
+            }
+
+            .input-area {
+                padding: 15px;
+            }
+
+            .scale-buttons {
+                justify-content: center;
+            }
+
+            .scale-btn {
+                padding: 12px 14px;
+                font-size: 15px;
+                min-width: 45px;
+            }
+
+            input[type="text"],
+            input[type="number"],
+            input[type="date"],
+            select,
+            textarea {
+                font-size: 16px;
+                padding: 14px 16px;
+            }
+
+            .send-btn {
+                padding: 14px 20px;
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>THR1VE Daily Metrics</h1>
+            <div class="view-toggle">
+                <button onclick="switchView('chat')" class="active" id="chat-btn">Chat</button>
+                <button onclick="switchView('graph')" id="graph-btn">Graphs</button>
+            </div>
+        </div>
+
+        <div class="chat-view active" id="chat-view">
+            <div class="messages" id="messages"></div>
+            <div class="input-area">
+                <div id="input-container"></div>
+            </div>
+        </div>
+
+        <div class="graph-view" id="graph-view">
+            <div class="stats-grid" id="stats-grid"></div>
+            <div id="graphs-container"></div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURATION - Replace with your Google Apps Script Web App URL
+        const SCRIPT_URL = localStorage.getItem('GOOGLE_SCRIPT_URL') || '';
+
+        const metrics = [
+            { key: 'email', question: "What's your email?", type: 'text' },
+            { key: 'date', question: "What's today's date?", type: 'date' },
+            { key: 'bodyweight', question: "What was your bodyweight this morning (lbs)?", type: 'number', optional: true },
+            { 
+                key: 'sleep_hours', 
+                question: "How many hours did you sleep last night? (Actual sleep, not duration in bed)", 
+                type: 'select',
+                options: [5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
+            },
+            { 
+                key: 'sleep_quality', 
+                question: "How would you rate the quality of your sleep?", 
+                type: 'scale',
+                min: 1,
+                max: 10,
+                labels: { 1: 'Terrible', 10: 'Best possible' }
+            },
+            { 
+                key: 'energy', 
+                question: "How would you rate your energy levels across the day? (Average, not highest or lowest)", 
+                type: 'scale',
+                min: 1,
+                max: 10,
+                labels: { 1: 'Terrible', 10: 'Best possible' }
+            },
+            { 
+                key: 'steps', 
+                question: "How many steps did you take today?", 
+                type: 'select',
+                options: [4000, 4500, 5000, 5500, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000, 15000, 16000, 17000, 18000, 19000, 20000, 'N/A']
+            },
+            { 
+                key: 'mental_clarity', 
+                question: "How would you rate your mental clarity or focus today? (Average across the day)", 
+                type: 'scale',
+                min: 1,
+                max: 10,
+                labels: { 1: 'Terrible', 10: 'Best possible' }
+            },
+            { 
+                key: 'stress', 
+                question: "How would you rate your stress levels today? (Average across the day)", 
+                type: 'scale',
+                min: 1,
+                max: 10,
+                labels: { 1: 'Zero Stress', 10: 'Extreme Stress' }
+            },
+            { 
+                key: 'wellbeing', 
+                question: "Please describe your overall sense of wellbeing today.", 
+                type: 'scale',
+                min: 1,
+                max: 5,
+                labels: { 1: 'Poor', 5: 'Excellent' }
+            },
+            { 
+                key: 'recovery', 
+                question: "What is your overall impression of your recovery today?", 
+                type: 'scale',
+                min: 1,
+                max: 5,
+                labels: { 1: 'Poor', 5: 'Excellent' }
+            },
+            { 
+                key: 'fluid_intake', 
+                question: "What is your fluid intake today?", 
+                type: 'select',
+                options: ['1.5L (50 fl oz)', '2.0L (67 fl oz)', '2.5L (85 fl oz)', '3.0L (100 fl oz)', '3.5L (120 fl oz)', '4.0L (135 fl oz)', '4.5L (150 fl oz)', '5.0L (170 fl oz)', '5.5L (185 fl oz) or more']
+            },
+            { 
+                key: 'digestive', 
+                question: "How would you describe your digestive / GI function today?", 
+                type: 'scale',
+                min: 1,
+                max: 2,
+                labels: { 1: 'Good, no symptoms', 2: 'Notable symptoms' }
+            },
+            { 
+                key: 'hunger', 
+                question: "How would you rate your average level of hunger today?", 
+                type: 'scale',
+                min: 1,
+                max: 10,
+                labels: { 1: 'No hunger', 10: 'Extreme hunger' }
+            },
+            { 
+                key: 'stress_cravings', 
+                question: "Have you experienced any stress-related food cravings today? If yes, how strong were they?", 
+                type: 'scale',
+                min: 1,
+                max: 10,
+                labels: { 1: 'No cravings', 10: 'Extreme cravings' }
+            },
+            { 
+                key: 'emotion_cravings', 
+                question: "Have you experienced any emotion-related food cravings today? If yes, how strong were they?", 
+                type: 'scale',
+                min: 1,
+                max: 10,
+                labels: { 1: 'No cravings', 10: 'Extreme cravings' }
+            },
+            { 
+                key: 'soreness', 
+                question: "Please rate any muscular soreness you've experienced today.", 
+                type: 'scale',
+                min: 1,
+                max: 5,
+                labels: { 1: 'No soreness', 5: 'Extreme soreness' }
+            },
+            { 
+                key: 'notes', 
+                question: "Please include any other information not covered that you'd like to share (or N/A if none).", 
+                type: 'textarea'
+            }
+        ];
+
+        let currentMetricIndex = 0;
+        let currentEntry = {};
+        let allEntries = [];
+
+        async function loadData() {
+            if (!SCRIPT_URL) {
+                showConfigRequired();
+                return false;
+            }
+
+            try {
+                showLoading('Loading your data...');
+                const response = await fetch(SCRIPT_URL);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    allEntries = data.entries || [];
+                    hideLoading();
+                    return true;
+                } else {
+                    throw new Error(data.message || 'Failed to load data');
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError('Failed to load data. Please check your configuration.');
+                return false;
+            }
+        }
+
+        async function saveData() {
+            if (!SCRIPT_URL) {
+                showError('Google Script URL not configured');
+                return false;
+            }
+
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'save',
+                        entry: currentEntry
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    allEntries.push(currentEntry);
+                    return true;
+                } else {
+                    throw new Error(data.message || 'Failed to save data');
+                }
+            } catch (error) {
+                console.error('Error saving data:', error);
+                showError('Failed to save data. Please try again.');
+                return false;
+            }
+        }
+
+        function showConfigRequired() {
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML = `
+                <div class="config-required">
+                    <h2>⚙️ Configuration Required</h2>
+                    <p>To use this tracker with Google Sheets, you need to set up your Google Apps Script Web App URL.</p>
+                    <p style="margin-top: 15px;">Follow the setup guide to get your URL, then paste it below:</p>
+                    <div class="config-input">
+                        <input type="text" id="script-url-input" placeholder="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec">
+                        <button onclick="saveScriptUrl()">Save & Continue</button>
+                    </div>
+                    <p style="margin-top: 15px; font-size: 13px;">
+                        Don't have the URL? Check the <strong>google-sheets-setup-guide.md</strong> file for instructions.
+                    </p>
+                </div>
+            `;
+            document.getElementById('input-container').innerHTML = '';
+        }
+
+        function saveScriptUrl() {
+            const input = document.getElementById('script-url-input');
+            const url = input.value.trim();
+            
+            if (!url || !url.includes('script.google.com')) {
+                alert('Please enter a valid Google Apps Script URL');
+                return;
+            }
+
+            localStorage.setItem('GOOGLE_SCRIPT_URL', url);
+            location.reload();
+        }
+
+        function showLoading(message) {
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function hideLoading() {
+            const loading = document.querySelector('.loading');
+            if (loading) {
+                loading.remove();
+            }
+        }
+
+        function showError(message) {
+            const messagesDiv = document.getElementById('messages');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            messagesDiv.appendChild(errorDiv);
+        }
+
+        function addMessage(text, isBot = true) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isBot ? 'bot' : 'user'}`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            avatar.textContent = isBot ? '🎯' : '👤';
+            
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            content.textContent = text;
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(content);
+            messagesDiv.appendChild(messageDiv);
+            
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function showInput() {
+            const container = document.getElementById('input-container');
+            const metric = metrics[currentMetricIndex];
+            
+            if (!metric) {
+                completeEntry();
+                return;
+            }
+
+            container.innerHTML = '';
+
+            if (metric.type === 'scale') {
+                const buttonsDiv = document.createElement('div');
+                buttonsDiv.className = 'scale-buttons';
+                
+                for (let i = metric.min; i <= metric.max; i++) {
+                    const btn = document.createElement('button');
+                    btn.className = 'scale-btn';
+                    btn.textContent = i;
+                    if (metric.labels && (i === metric.min || i === metric.max)) {
+                        btn.title = metric.labels[i];
+                    }
+                    btn.onclick = () => handleScaleSelect(i);
+                    buttonsDiv.appendChild(btn);
+                }
+                
+                if (metric.labels) {
+                    const labelsDiv = document.createElement('div');
+                    labelsDiv.style.display = 'flex';
+                    labelsDiv.style.justifyContent = 'space-between';
+                    labelsDiv.style.fontSize = '12px';
+                    labelsDiv.style.color = '#666';
+                    labelsDiv.style.marginTop = '5px';
+                    labelsDiv.innerHTML = `<span>${metric.labels[metric.min]}</span><span>${metric.labels[metric.max]}</span>`;
+                    container.appendChild(labelsDiv);
+                }
+                
+                container.appendChild(buttonsDiv);
+            } else if (metric.type === 'select') {
+                const inputContainer = document.createElement('div');
+                inputContainer.className = 'input-container';
+                
+                const select = document.createElement('select');
+                select.id = 'current-input';
+                
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = 'Select...';
+                select.appendChild(defaultOption);
+                
+                metric.options.forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt;
+                    option.textContent = opt;
+                    select.appendChild(option);
+                });
+                
+                const btn = document.createElement('button');
+                btn.className = 'send-btn';
+                btn.textContent = '→';
+                btn.onclick = handleSubmit;
+                
+                inputContainer.appendChild(select);
+                inputContainer.appendChild(btn);
+                container.appendChild(inputContainer);
+            } else if (metric.type === 'textarea') {
+                const inputContainer = document.createElement('div');
+                inputContainer.className = 'input-container';
+                
+                const textarea = document.createElement('textarea');
+                textarea.id = 'current-input';
+                textarea.placeholder = 'Your answer...';
+                
+                const btn = document.createElement('button');
+                btn.className = 'send-btn';
+                btn.textContent = '→';
+                btn.onclick = handleSubmit;
+                
+                inputContainer.appendChild(textarea);
+                inputContainer.appendChild(btn);
+                container.appendChild(inputContainer);
+            } else {
+                const inputContainer = document.createElement('div');
+                inputContainer.className = 'input-container';
+                
+                const input = document.createElement('input');
+                input.type = metric.type;
+                input.id = 'current-input';
+                input.placeholder = metric.type === 'date' ? '' : 'Your answer...';
+                
+                if (metric.type === 'date') {
+                    input.valueAsDate = new Date();
+                }
+                
+                const btn = document.createElement('button');
+                btn.className = 'send-btn';
+                btn.textContent = '→';
+                btn.onclick = handleSubmit;
+                
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') handleSubmit();
+                });
+                
+                inputContainer.appendChild(input);
+                inputContainer.appendChild(btn);
+                container.appendChild(inputContainer);
+                
+                setTimeout(() => input.focus(), 100);
+            }
+        }
+
+        function handleScaleSelect(value) {
+            const metric = metrics[currentMetricIndex];
+            currentEntry[metric.key] = value;
+            addMessage(value.toString(), false);
+            currentMetricIndex++;
+            
+            if (currentMetricIndex < metrics.length) {
+                setTimeout(() => {
+                    addMessage(metrics[currentMetricIndex].question);
+                    showInput();
+                }, 500);
+            } else {
+                completeEntry();
+            }
+        }
+
+        function handleSubmit() {
+            const input = document.getElementById('current-input');
+            const value = input.value.trim();
+            
+            const metric = metrics[currentMetricIndex];
+            
+            if (!value && !metric.optional) {
+                alert('Please provide an answer');
+                return;
+            }
+            
+            currentEntry[metric.key] = value || 'N/A';
+            addMessage(value || 'N/A', false);
+            
+            currentMetricIndex++;
+            
+            if (currentMetricIndex < metrics.length) {
+                setTimeout(() => {
+                    addMessage(metrics[currentMetricIndex].question);
+                    showInput();
+                }, 500);
+            } else {
+                completeEntry();
+            }
+        }
+
+        async function completeEntry() {
+            currentEntry.timestamp = new Date().toISOString();
+            
+            showLoading('Saving your data...');
+            const saved = await saveData();
+            hideLoading();
+            
+            if (saved) {
+                const messagesDiv = document.getElementById('messages');
+                const completionDiv = document.createElement('div');
+                completionDiv.className = 'completion-message';
+                completionDiv.innerHTML = `
+                    <h2>🎉 Great work!</h2>
+                    <p>Your daily metrics have been recorded and saved to Google Sheets.</p>
+                    <div class="quick-actions">
+                        <button onclick="location.reload()">New Entry</button>
+                        <button onclick="switchView('graph')">View Graphs</button>
+                    </div>
+                `;
+                messagesDiv.appendChild(completionDiv);
+            }
+            
+            document.getElementById('input-container').innerHTML = '';
+        }
+
+        function switchView(view) {
+            document.getElementById('chat-view').classList.remove('active');
+            document.getElementById('graph-view').classList.remove('active');
+            document.getElementById('chat-btn').classList.remove('active');
+            document.getElementById('graph-btn').classList.remove('active');
+            
+            if (view === 'chat') {
+                document.getElementById('chat-view').classList.add('active');
+                document.getElementById('chat-btn').classList.add('active');
+            } else {
+                document.getElementById('graph-view').classList.add('active');
+                document.getElementById('graph-btn').classList.add('active');
+                renderGraphs();
+            }
+        }
+
+        function getLastWeekEntries() {
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+            
+            return allEntries.filter(entry => {
+                const entryDate = new Date(entry.timestamp);
+                return entryDate >= oneWeekAgo;
+            });
+        }
+
+        function renderGraphs() {
+            const weekEntries = getLastWeekEntries();
+            
+            // Stats cards
+            const statsGrid = document.getElementById('stats-grid');
+            statsGrid.innerHTML = '';
+            
+            if (weekEntries.length > 0) {
+                const avgSleep = weekEntries.reduce((sum, e) => sum + parseFloat(e.sleep_hours || 0), 0) / weekEntries.length;
+                const avgEnergy = weekEntries.reduce((sum, e) => sum + parseFloat(e.energy || 0), 0) / weekEntries.length;
+                const avgSteps = weekEntries.filter(e => e.steps !== 'N/A').reduce((sum, e) => sum + parseFloat(e.steps || 0), 0) / weekEntries.filter(e => e.steps !== 'N/A').length;
+                
+                statsGrid.innerHTML = `
+                    <div class="stat-card">
+                        <div class="label">Avg Sleep</div>
+                        <div class="value">${avgSleep.toFixed(1)}h</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Avg Energy</div>
+                        <div class="value">${avgEnergy.toFixed(1)}/10</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Avg Steps</div>
+                        <div class="value">${isNaN(avgSteps) ? 'N/A' : Math.round(avgSteps).toLocaleString()}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">Entries This Week</div>
+                        <div class="value">${weekEntries.length}</div>
+                    </div>
+                `;
+            }
+            
+            // Graphs
+            const graphsContainer = document.getElementById('graphs-container');
+            graphsContainer.innerHTML = '';
+            
+            const graphMetrics = [
+                { key: 'sleep_quality', label: 'Sleep Quality', color: '#667eea' },
+                { key: 'energy', label: 'Energy Levels', color: '#764ba2' },
+                { key: 'mental_clarity', label: 'Mental Clarity', color: '#f093fb' },
+                { key: 'stress', label: 'Stress Levels', color: '#f5576c' },
+                { key: 'wellbeing', label: 'Overall Wellbeing', color: '#4facfe' },
+                { key: 'recovery', label: 'Recovery', color: '#43e97b' }
+            ];
+            
+            graphMetrics.forEach(metric => {
+                const container = document.createElement('div');
+                container.className = 'graph-container';
+                
+                const title = document.createElement('h3');
+                title.textContent = metric.label;
+                container.appendChild(title);
+                
+                const canvas = document.createElement('canvas');
+                canvas.className = 'graph-canvas';
+                container.appendChild(canvas);
+                
+                graphsContainer.appendChild(container);
+                
+                const labels = weekEntries.map(e => new Date(e.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                const data = weekEntries.map(e => parseFloat(e[metric.key]) || 0);
+                
+                new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: metric.label,
+                            data: data,
+                            borderColor: metric.color,
+                            backgroundColor: metric.color + '20',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        async function init() {
+            const loaded = await loadData();
+            
+            if (!loaded) {
+                return; // Config required or error
+            }
+            
+            // Check URL parameters for view-only mode
+            const urlParams = new URLSearchParams(window.location.search);
+            const viewOnly = urlParams.get('view') === 'only';
+            
+            if (viewOnly) {
+                document.querySelector('.header h1').textContent = 'THR1VE Daily Metrics (View Only)';
+                document.getElementById('chat-btn').style.display = 'none';
+                switchView('graph');
+                return;
+            }
+            
+            // Check if entry already exists for today
+            const today = new Date().toISOString().split('T')[0];
+            const todayEntry = allEntries.find(e => e.date === today);
+            
+            if (todayEntry) {
+                addMessage("You've already completed your metrics for today! Check out your graphs to see your progress.");
+                document.getElementById('input-container').innerHTML = `
+                    <div class="quick-actions">
+                        <button onclick="switchView('graph')">View Graphs</button>
+                        <button onclick="startNewEntry()">Start New Entry Anyway</button>
+                    </div>
+                `;
+            } else {
+                startNewEntry();
+            }
+        }
+
+        function startNewEntry() {
+            currentMetricIndex = 0;
+            currentEntry = {};
+            document.getElementById('messages').innerHTML = '';
+            
+            addMessage("Hey there! Let's track your daily metrics. I'll ask you a few questions one at a time. Ready?");
+            
+            setTimeout(() => {
+                addMessage(metrics[0].question);
+                showInput();
+            }, 1000);
+        }
+
+        init();
+    </script>
+</body>
+</html>
